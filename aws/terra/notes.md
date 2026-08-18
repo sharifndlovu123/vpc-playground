@@ -1,0 +1,3 @@
+1. terraform init`, then write a VPC with public + private subnets across 2 AZs, an Internet Gateway, and route tables. Use `aws_vpc`, `aws_subnet`, `aws_internet_gateway`, `aws_route_table`.
+2. instead of hardcoding CIDRs, use the `cidrsubnet()` function to carve subnets from a single VPC CIDR — a small habit that pays off once you're managing more than 2 subnets.
+3.add a NAT Gateway for the private subnet's outbound traffic (billed hourly — spin it up, test it, `terraform destroy` same day if cost-conscious).

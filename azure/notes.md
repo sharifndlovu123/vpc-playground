@@ -1,0 +1,3 @@
+1. build the VNet equivalent in the **Azure Portal** — one VNet, 2 subnets (public/private analog) across regions or just logically separated, an NSG for each subnet, and a route table.
+2. once deployed, hit **Export Template** on the resource group → download the ARM JSON. Then run `bicep decompile` on it to get Bicep out the other end. Compare how much boilerplate ARM has vs. the Bicep it decompiles to.
+3. hand-clean the exported Bicep — strip hardcoded values into a `params.bicepparam` file, rename the auto-generated resource names (Azure's exporter gives you ugly GUID-suffixed names by default) into something you'd actually commit to a repo.

@@ -1,0 +1,2 @@
+1. ` block with `AWS::EC2::VPC`, `AWS::EC2::Subnet`, `AWS::EC2::InternetGateway`, `AWS::EC2::RouteTable`. Deploy with `aws cloudformation deploy`.
+2. use CFN parameters (`Parameters:` block) for the CIDR blocks instead of hardcoding — compare directly against Terraform's `variables.tf` from yesterday.
