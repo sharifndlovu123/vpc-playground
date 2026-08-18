@@ -1,0 +1,178 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "virtualNetworks_sample_vnet_name": {
+            "defaultValue": "sample_vnet",
+            "type": "String"
+        },
+        "networkSecurityGroups_sample_public_nsg_name": {
+            "defaultValue": "sample-public-nsg",
+            "type": "String"
+        },
+        "networkSecurityGroups_sample_private_nsg_name": {
+            "defaultValue": "sample-private-nsg",
+            "type": "String"
+        },
+        "networkManagers_sample_vnet_network_manager_name": {
+            "defaultValue": "sample_vnet-network-manager",
+            "type": "String"
+        },
+        "addressPrefixes_sample_vnet_address_prefixes": {
+            "defaultValue": [
+                "21.0.0.0/28"
+            ],
+            "type": "Array"
+        },
+        "addressPrefixes_private_subnet_address_prefixes": {
+            "defaultValue": [
+                "21.0.0.0/29"
+            ],
+            "type": "Array"
+        },
+        "addressPrefixes_public_subnet_address_prefixes": {
+            "defaultValue": [
+                "21.0.0.8/29"
+            ],
+            "type": "Array"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkManagers",
+            "apiVersion": "2025-07-01",
+            "name": "[parameters('networkManagers_sample_vnet_network_manager_name')]",
+            "location": "eastus",
+            "properties": {
+                "description": "Created for sample_vnet",
+                "networkManagerScopes": {
+                    "managementGroups": [],
+                    "subscriptions": [
+                        "/subscriptions/84d5e3cd-c761-4bd4-9b6f-96d03251739b"
+                    ]
+                },
+                "networkManagerScopeAccesses": []
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2025-07-01",
+            "name": "[parameters('networkSecurityGroups_sample_private_nsg_name')]",
+            "location": "eastus",
+            "properties": {
+                "securityRules": []
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2025-07-01",
+            "name": "[parameters('networkSecurityGroups_sample_public_nsg_name')]",
+            "location": "eastus",
+            "properties": {
+                "securityRules": []
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkManagers/ipamPools",
+            "apiVersion": "2025-07-01",
+            "name": "[concat(parameters('networkManagers_sample_vnet_network_manager_name'), '/sample_vnet-ipv4-pool')]",
+            "location": "eastus",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkManagers', parameters('networkManagers_sample_vnet_network_manager_name'))]"
+            ],
+            "properties": {
+                "description": "Created from virtual network create experience",
+                "displayName": "sample_vnet-ipv4-pool",
+                "addressPrefixes": "[parameters('addressPrefixes_sample_vnet_address_prefixes')]"
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2025-07-01",
+            "name": "[parameters('virtualNetworks_sample_vnet_name')]",
+            "location": "eastus",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkManagers/ipamPools', parameters('networkManagers_sample_vnet_network_manager_name'), 'sample_vnet-ipv4-pool')]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroups_sample_private_nsg_name'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroups_sample_public_nsg_name'))]"
+            ],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": "[parameters('addressPrefixes_sample_vnet_address_prefixes')]",
+                    "ipamPoolPrefixAllocations": [
+                        {
+                            "numberOfIpAddresses": "16",
+                            "pool": {
+                                "id": "[resourceId('Microsoft.Network/networkManagers/ipamPools', parameters('networkManagers_sample_vnet_network_manager_name'), concat(parameters('virtualNetworks_sample_vnet_name'), '-ipv4-pool'))]"
+                            }
+                        }
+                    ]
+                },
+                "encryption": {
+                    "enabled": false,
+                    "enforcement": "AllowUnencrypted"
+                },
+                "privateEndpointVNetPolicies": "Disabled",
+                "virtualNetworkPeerings": [],
+                "enableDdosProtection": false
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2025-07-01",
+            "name": "[concat(parameters('virtualNetworks_sample_vnet_name'), '/private-subnet')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworks_sample_vnet_name'))]",
+                "[resourceId('Microsoft.Network/networkManagers/ipamPools', parameters('networkManagers_sample_vnet_network_manager_name'), 'sample_vnet-ipv4-pool')]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroups_sample_private_nsg_name'))]"
+            ],
+            "properties": {
+                "addressPrefixes": "[parameters('addressPrefixes_private_subnet_address_prefixes')]",
+                "ipamPoolPrefixAllocations": [
+                    {
+                        "numberOfIpAddresses": "8",
+                        "pool": {
+                            "id": "[resourceId('Microsoft.Network/networkManagers/ipamPools', parameters('networkManagers_sample_vnet_network_manager_name'), 'sample_vnet-ipv4-pool')]"
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroups_sample_private_nsg_name'))]"
+                },
+                "delegations": [],
+                "privateEndpointNetworkPolicies": "Disabled",
+                "privateLinkServiceNetworkPolicies": "Enabled",
+                "defaultOutboundAccess": false
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "apiVersion": "2025-07-01",
+            "name": "[concat(parameters('virtualNetworks_sample_vnet_name'), '/public-subnet')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworks_sample_vnet_name'))]",
+                "[resourceId('Microsoft.Network/networkManagers/ipamPools', parameters('networkManagers_sample_vnet_network_manager_name'), 'sample_vnet-ipv4-pool')]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroups_sample_public_nsg_name'))]"
+            ],
+            "properties": {
+                "addressPrefixes": "[parameters('addressPrefixes_public_subnet_address_prefixes')]",
+                "ipamPoolPrefixAllocations": [
+                    {
+                        "numberOfIpAddresses": "8",
+                        "pool": {
+                            "id": "[resourceId('Microsoft.Network/networkManagers/ipamPools', parameters('networkManagers_sample_vnet_network_manager_name'), 'sample_vnet-ipv4-pool')]"
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroups_sample_public_nsg_name'))]"
+                },
+                "delegations": [],
+                "privateEndpointNetworkPolicies": "Disabled",
+                "privateLinkServiceNetworkPolicies": "Enabled",
+                "defaultOutboundAccess": false
+            }
+        }
+    ]
+}
