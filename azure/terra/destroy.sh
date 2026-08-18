@@ -10,10 +10,4 @@ if [[ -n "$ARM_SUBSCRIPTION_ID" ]]; then
   export ARM_SUBSCRIPTION_ID
 fi
 
-# init downloads providers and writes/reads .terraform.lock.hcl,
-# pinning exact provider versions so plan/apply are reproducible.
-terraform init
-
-terraform plan -out=tfplan
-
-terraform apply tfplan
+terraform destroy
