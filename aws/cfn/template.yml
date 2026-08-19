@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Cloudformation Vpc, AWS requires subnets/networks larger than /28 due to its 5 reserved IP addresses. This template creates a VPC with a public and private subnet, a security group, and an internet gateway.
+
+Parameters:
+  Name:
+    Type: String
+    Description: Name of the VPC  
+    Default: "My Vpc"
+
+  CidrBlock:
+    Type: String
+    Description: CIDR block for the VPC
+    Default: "100.0.0.0/27"
+
+  PublicSubnetCidr:
+    Type: String
+    Description: CIDR block for the public subnet
+    Default: "100.0.0.0/28"
+
+  PrivateSubnetCidr:
+    Type: String
+    Description: CIDR block for the private subnet
+    Default: "100.0.0.16/28"
+
+Resources:
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref CidrBlock
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: "default"
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !Ref PublicSubnetCidr
+      EnableDns64: false
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref VPC 
+
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !Ref PrivateSubnetCidr
+      EnableDns64: false
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref VPC 
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC 
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: Attachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref IGW
+  
+  IGW:
+    Type: AWS::EC2::InternetGateway
+    Properties: 
+      Tags: 
+        - Key: "Name"
+          Value: !Ref Name
+  
+  Attachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC 
+      InternetGatewayId: !Ref IGW
+      
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "String" 
+      GroupName: "String"
+      VpcId: !Ref VPC 
+
+  # Allow SSH access from anywhere
+  IngressRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: "tcp" 
+      FromPort: 22 
+      ToPort: 22 
+      CidrIp: "your-own-ip-address/32" # Replace with your own IP address
+
+  # Allow all outbound traffic
+  EgressRule:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: "tcp" 
+      FromPort: 0 
+      ToPort: 65535
+      CidrIp: "0.0.0.0/0"
+
+
+Outputs:
+  VpcId:
+    Description: The ID of the VPC
+    Value: !Ref VPC
+  PublicSubnet:
+    Description: The ID of the public subnet
+    Value: !Ref PublicSubnet
+  PrivateSubnet:
+    Description: The ID of the private subnet
+    Value: !Ref PrivateSubnet
+  SecurityGroupId:
+    Description: The ID of the security group
+    Value: !Ref SecurityGroup
