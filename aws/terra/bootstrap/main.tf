@@ -3,7 +3,7 @@
 # This bucket has to exist BEFORE you can point the "backend s3" block at it,
 # so it's created here with local state first. Steps:
 #   1. terraform apply   (creates the bucket below, still using local state)
-#   2. add the backend "s3" block (see backend.tf.example) and run
+#   2. copy the bucket name into envs/prod/backend.tf and run
 #      `terraform init -migrate-state` to move state into this bucket
 #
 # random_id keeps the bucket name globally unique without hardcoding the
@@ -62,9 +62,9 @@ resource "aws_s3_bucket_public_access_block" "tfstate" {
 # even on a "dummy" bucket.
 data "aws_iam_policy_document" "tfstate_tls_only" {
   statement {
-    sid       = "DenyInsecureTransport"
-    effect    = "Deny"
-    actions   = ["s3:*"]
+    sid     = "DenyInsecureTransport"
+    effect  = "Deny"
+    actions = ["s3:*"]
     resources = [
       aws_s3_bucket.tfstate.arn,
       "${aws_s3_bucket.tfstate.arn}/*",

@@ -1,4 +1,3 @@
-# example of sensitive output
 output "vpc_id" {
   value       = aws_vpc.my_vpc.id
   sensitive   = true

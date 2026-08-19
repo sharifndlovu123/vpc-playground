@@ -44,11 +44,6 @@ resource "aws_internet_gateway" "gw" {
   }
 }
 
-# resource "aws_internet_gateway_attachment" "example" {
-#   internet_gateway_id = aws_internet_gateway.gw.id
-#   vpc_id              = aws_vpc.my_vpc.id
-# }
-
 resource "aws_route" "iroute" {
   route_table_id         = aws_vpc.my_vpc.default_route_table_id
   destination_cidr_block = "0.0.0.0/0"

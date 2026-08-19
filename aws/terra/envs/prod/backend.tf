@@ -5,7 +5,7 @@
 # Without an explicit profile here, it falls back to env vars / the
 # [default] CLI profile instead of the one you actually intend.
 #
-# Terraform 1.15.8 supports native S3 locking, so no DynamoDB table is
+# Terraform 1.10+ supports native S3 locking, so no DynamoDB table is
 # needed -- use_lockfile writes a ".tflock" companion object next to the
 # state object and uses a conditional-write to S3 as the lock.
 terraform {
