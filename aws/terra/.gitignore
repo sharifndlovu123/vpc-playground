@@ -1,0 +1,31 @@
+# Local .terraform directories
+**/.terraform/*
+
+# Terraform state files -- these often contain sensitive data and should
+# never be committed. Once migrated to the S3 backend they won't be
+# written locally at all, but this stays as a safety net (e.g. bootstrap/
+# is intentionally local-state-only).
+*.tfstate
+*.tfstate.*
+
+# Saved plan output
+*.tfplan
+tfplan
+
+# Variable files that may contain secrets
+*.tfvars
+*.tfvars.json
+
+# CLI crash log
+crash.log
+crash.*.log
+
+# Override files -- typically used to override resources locally
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
