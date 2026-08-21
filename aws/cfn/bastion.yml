@@ -1,0 +1,184 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Cloudformation Vpc, AWS requires subnets/networks larger than /28 due to its 5 reserved IP addresses. This template creates a VPC with a public and private subnet, a security group, and an internet gateway.
+
+Parameters:
+  Name:
+    Type: String
+    Description: Name of the VPC  
+    Default: "My Bastion Vpc"
+
+  CidrBlock:
+    Type: String
+    Description: CIDR block for the VPC
+    Default: "100.0.0.0/27"
+
+  PublicSubnetCidr:
+    Type: String
+    Description: CIDR block for the public subnet
+    Default: "100.0.0.0/28"
+
+  PrivateSubnetCidr:
+    Type: String
+    Description: CIDR block for the private subnet
+    Default: "100.0.0.16/28"
+
+Resources:
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref CidrBlock
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: "default"
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !Ref PublicSubnetCidr
+      EnableDns64: false
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref VPC 
+
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: !Ref PrivateSubnetCidr
+      EnableDns64: false
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref VPC 
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC 
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: Attachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref IGW
+  
+  IGW:
+    Type: AWS::EC2::InternetGateway
+    Properties: 
+      Tags: 
+        - Key: "Name"
+          Value: !Ref Name
+  
+  Attachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC 
+      InternetGatewayId: !Ref IGW
+      
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allows SSH access to the bastion host"
+      GroupName: "bastion-sg"
+      VpcId: !Ref VPC
+
+  # Allow SSH access from ow ip
+  BastionIngressRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref BastionSecurityGroup
+      IpProtocol: "tcp" 
+      FromPort: 22 
+      ToPort: 22 
+      CidrIp: "your-own-ip-address/32" # Replace with your own IP address
+
+  # Allow outbound traffic to our private subnet
+  BastionEgressRule:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref BastionSecurityGroup
+      IpProtocol: "tcp" 
+      FromPort: 22
+      ToPort: 22
+      CidrIp: "100.0.0.16/28"
+
+  PrivateSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allows SSH access from the bastion security group"
+      GroupName: "private-sg"
+      VpcId: !Ref VPC
+
+  # Allow SSH access from Bastion Security Group
+  PrivateIngressRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref PrivateSecurityGroup
+      IpProtocol: "tcp" 
+      FromPort: 22 
+      ToPort: 22 
+      SourceSecurityGroupId: !Ref BastionSecurityGroup
+
+
+
+  BastionKeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: "bastion-key-name"
+
+  EC2KeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyName: "ec2-key-name"
+  
+  
+  # EC2 Instances
+  BastionHost:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: "ami-052c3f77bd3e4114d"
+      KeyName: !Ref BastionKeyPair
+      InstanceType: "t3.micro"
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          GroupSet:
+            - !Ref BastionSecurityGroup
+          SubnetId: !Ref PublicSubnet
+  
+  Ec2Instance: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: "ami-052c3f77bd3e4114d"
+      KeyName: !Ref EC2KeyPair
+      InstanceType: "t3.micro"
+      SecurityGroupIds:
+        - !Ref PrivateSecurityGroup
+      SubnetId: !Ref PrivateSubnet
+
+      
+Outputs:
+  VpcId:
+    Description: The ID of the VPC
+    Value: !Ref VPC
+  PublicSubnet:
+    Description: The ID of the public subnet
+    Value: !Ref PublicSubnet
+  PrivateSubnet:
+    Description: The ID of the private subnet
+    Value: !Ref PrivateSubnet
+  BastionSecurityGroupId:
+    Description: The ID of the bastion security group
+    Value: !Ref BastionSecurityGroup
+  PrivateSecurityGroupId:
+    Description: The ID of the private security group
+    Value: !Ref PrivateSecurityGroup
+  BastionIpAddress:
+    Description: The public IP address of the bastion host
+    Value: !GetAtt BastionHost.PublicIp
